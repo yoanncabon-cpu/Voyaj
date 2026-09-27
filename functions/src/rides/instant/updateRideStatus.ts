@@ -196,7 +196,7 @@ async function handleCancel(
   rideId: string,
   uid: string,
   isDriver: boolean,
-  isPassenger: boolean,
+  _isPassenger: boolean,
 ): Promise<void> {
   // Remboursement selon le statut
   if (['searching', 'accepted', 'pickup'].includes(ride.status)) {

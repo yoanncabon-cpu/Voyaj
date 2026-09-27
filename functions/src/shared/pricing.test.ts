@@ -31,14 +31,18 @@ describe('calculatePrice', () => {
   });
 
   it('frais Voyaj minimum à 1 € pour les très courts trajets', () => {
-    const result = calculatePrice({ ...baseParams, distanceKm: 1 });
+    // 1 + 0.02 × 0.1 = 1.002 → 1.00 après arrondi
+    const result = calculatePrice({ ...baseParams, distanceKm: 0.1 });
     expect(result.voyajFeeEur).toBe(1.0);
+    // 1 km → 1.02 € (la formule n'atteint le plancher qu'à ~0 km)
+    expect(calculatePrice({ ...baseParams, distanceKm: 1 }).voyajFeeEur).toBe(1.02);
   });
 
   it('répartit correctement avec 3 sièges', () => {
     const result = calculatePrice({ ...baseParams, seats: 3 });
     // passengerShare = total / 4
-    expect(result.passengerShareEur).toBeCloseTo(result.totalCostEur / 4, 2);
+    // Les deux valeurs sont arrondies séparément → écart max d'un centime
+    expect(Math.abs(result.passengerShareEur - result.totalCostEur / 4)).toBeLessThanOrEqual(0.01);
   });
 
   it('lève une erreur si distanceKm <= 0', () => {

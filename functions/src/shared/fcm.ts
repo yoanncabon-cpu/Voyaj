@@ -66,43 +66,63 @@ export async function sendRideRequestNotification(params: {
 
 /**
  * Notification générique (message, confirmation de course, etc.)
+ * Supporte les tokens individuels (fcmTokens) ou un topic FCM.
  */
 export async function sendPushNotification(params: {
-  fcmTokens: string[];
+  fcmTokens?: string[];
+  topic?: string;
   title: string;
   body: string;
   data?: Record<string, string>;
   route?: string;
 }): Promise<void> {
-  if (params.fcmTokens.length === 0) return;
+  const androidConfig = {
+    priority: 'high' as const,
+    notification: {
+      channelId: 'voyaj_default',
+      icon: 'ic_notification',
+      color: '#4F46E5',
+    },
+  };
+  const apnsConfig = {
+    headers: { 'apns-priority': '10' },
+    payload: {
+      aps: {
+        sound: 'default',
+        'interruption-level': 'active',
+      },
+    },
+  };
+  const notificationPayload = {
+    title: params.title,
+    body: params.body,
+  };
+  const dataPayload = {
+    ...params.data,
+    ...(params.route ? { route: params.route } : {}),
+  };
+
+  // Topic broadcast
+  if (params.topic) {
+    await messaging.send({
+      topic: params.topic,
+      notification: notificationPayload,
+      data: dataPayload,
+      android: androidConfig,
+      apns: apnsConfig,
+    });
+    return;
+  }
+
+  // Tokens individuels
+  if (!params.fcmTokens || params.fcmTokens.length === 0) return;
 
   const message: MulticastMessage = {
     tokens: params.fcmTokens,
-    notification: {
-      title: params.title,
-      body: params.body,
-    },
-    data: {
-      ...params.data,
-      ...(params.route ? { route: params.route } : {}),
-    },
-    android: {
-      priority: 'high',
-      notification: {
-        channelId: 'voyaj_default',
-        icon: 'ic_notification',
-        color: '#4F46E5',
-      },
-    },
-    apns: {
-      headers: { 'apns-priority': '10' },
-      payload: {
-        aps: {
-          sound: 'default',
-          'interruption-level': 'active',
-        },
-      },
-    },
+    notification: notificationPayload,
+    data: dataPayload,
+    android: androidConfig,
+    apns: apnsConfig,
   };
 
   await messaging.sendEachForMulticast(message);

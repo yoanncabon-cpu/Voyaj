@@ -1,5 +1,4 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { db } from '../../shared/admin';
 import { capturePaymentIntent, transferToDriver, eurToCents } from '../../shared/stripe';

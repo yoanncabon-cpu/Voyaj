@@ -134,7 +134,7 @@ function toGeohash(lat: number, lng: number, precision: number): string {
   const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
   let minLat = -90, maxLat = 90, minLng = -180, maxLng = 180;
   let hash = '';
-  let bits = 0, bitsTotal = 0, hashValue = 0;
+  let bits = 0, hashValue = 0;
   let even = true;
 
   while (hash.length < precision) {
@@ -150,7 +150,7 @@ function toGeohash(lat: number, lng: number, precision: number): string {
     even = !even;
     if (++bits === 5) {
       hash += BASE32[hashValue];
-      bits = 0; hashValue = 0; bitsTotal++;
+      bits = 0; hashValue = 0;
     }
   }
   return hash;

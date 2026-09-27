@@ -15,7 +15,8 @@
   },
   "ignorePatterns": [
     "/lib/**/*",
-    "/generated/**/*"
+    "/generated/**/*",
+    "**/*.test.ts"
   ],
   "plugins": [
     "@typescript-eslint"
