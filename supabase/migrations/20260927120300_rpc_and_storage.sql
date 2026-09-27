@@ -115,3 +115,7 @@ create policy identity_write_own on storage.objects
 create policy identity_read_own on storage.objects
   for select to authenticated
   using (bucket_id = 'identity' and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin()));
+-- Renvoyer un document remplace l'ancien (upsert = insert + update).
+create policy identity_update_own on storage.objects
+  for update to authenticated
+  using (bucket_id = 'identity' and (storage.foldername(name))[1] = auth.uid()::text);

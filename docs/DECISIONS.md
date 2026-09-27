@@ -42,3 +42,12 @@ Format : `[DATE] DÉCISION — Raison — Alternatives rejetées`
 
 **[2026-09-27] Page « Je suis bien rentré » : page web statique sur Firebase Hosting**
 — Accessible sans compte, carte OSM via Leaflet.js, position mise à jour en temps réel via Firestore (lecture publique limitée au document du suivi).
+
+---
+
+**[2026-09-27] Changement de stack : Expo + Supabase + EAS (remplace Flutter + Firebase)**
+— Demandé pour travailler exactement comme l'app de la paroisse : builds et TestFlight via EAS (pas de Mac, pas de Codemagic),
+  backend Supabase (Postgres + RLS + Edge Functions), notifications via le service push Expo.
+— Conséquences : les entrées ci-dessus sur Riverpod, Cloud Tasks, FCM data messages et Firebase Hosting sont caduques.
+  Timers → pg_cron (tâche `maintenance` chaque minute). Page « bien rentré » → `web/jsbr` + fonction `safe-return-public`.
+— Course immédiate : autorisation Stripe (capture manuelle) ; trajet programmé : paiement immédiat (une autorisation expire après 7 jours).

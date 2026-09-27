@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Voyaj</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; margin: 0; background: #4F46E5; color: #fff; text-align: center; padding: 24px; }
+    a { display: inline-block; margin-top: 16px; padding: 14px 24px; background: #fff; color: #4F46E5; border-radius: 14px;
+      font-weight: 700; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Retour à Voyaj…</h1>
+    <p>Si l'application ne s'ouvre pas automatiquement :</p>
+    <a id="open" href="voyaj://">Ouvrir Voyaj</a>
+  </div>
+  <script>
+    // Page relais : Stripe exige une URL https, on renvoie vers l'app (voyaj://…).
+    const to = new URLSearchParams(location.search).get('to') || 'voyaj://';
+    const target = /^voyaj:\/\/[\w\-\/?=&]*$/.test(to) ? to : 'voyaj://';
+    document.getElementById('open').href = target;
+    location.replace(target);
+  </script>
+</body>
+</html>

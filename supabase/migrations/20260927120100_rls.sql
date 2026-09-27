@@ -189,6 +189,8 @@ alter publication supabase_realtime add table public.rides;
 alter publication supabase_realtime add table public.driver_locations;
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.conversations;
+alter publication supabase_realtime add table public.profiles;
+alter publication supabase_realtime add table public.ride_offers;
 
 -- ─── Défense en profondeur ─────────────────────────────────────────────────
 -- Même si une policy venait à être ajoutée par erreur, le client n'a pas le

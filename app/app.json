@@ -1,0 +1,105 @@
+{
+  "expo": {
+    "name": "Voyaj",
+    "slug": "voyaj",
+    "owner": "tansi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "voyaj",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "bundleIdentifier": "com.voyaj.app",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Voyaj utilise votre position pour trouver un chauffeur proche et suivre votre trajet.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "En mode chauffeur, Voyaj utilise votre position pour vous proposer des courses proches et la partager avec votre passager pendant le trajet.",
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ]
+      },
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
+      }
+    },
+    "android": {
+      "package": "com.voyaj.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4F46E5"
+      },
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "NOTIFICATIONS",
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#4F46E5"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Voyaj utilise votre position pour trouver un chauffeur proche et suivre votre trajet.",
+          "locationAlwaysAndWhenInUsePermission": "En mode chauffeur, Voyaj utilise votre position pour vous proposer des courses proches et la partager avec votre passager pendant le trajet."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#4F46E5"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Voyaj accède à vos photos pour votre photo de profil et l'envoi de votre pièce d'identité.",
+          "cameraPermission": "Voyaj utilise l'appareil photo pour photographier votre pièce d'identité."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Voyaj utilise Face ID pour sécuriser l'accès à votre compte."
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "",
+          "enableGooglePay": false
+        }
+      ],
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

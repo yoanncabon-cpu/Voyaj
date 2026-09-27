@@ -1,142 +1,73 @@
-# Voyaj — Architecture technique
+# Voyaj — Architecture
 
-## Vue d'ensemble
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                    CLIENTS                               │
-│  Flutter Android  │  Flutter iOS  │  Admin Web  │  Pro Web│
-└────────┬──────────┴──────┬────────┴──────┬──────┴────┬───┘
-         │                 │               │           │
-         └─────────────────┴───────────────┴───────────┘
-                           │ HTTPS / WebSocket
-         ┌─────────────────▼──────────────────────────────┐
-         │                FIREBASE                        │
-         │                                                │
-         │  Auth (e-mail + SMS)    App Check (Play/Attest)│
-         │  Firestore (données)    Realtime DB (présence) │
-         │  Cloud Functions (logique métier)              │
-         │  Cloud Tasks (timers)   Cloud Scheduler (cron) │
-         │  FCM (push)             Storage (photos/docs)  │
-         │  Remote Config          Crashlytics + Analytics│
-         │  Hosting (admin, web, jsbr)                    │
-         └───────────┬────────────────────────────────────┘
-                     │ Secret Manager / env
-         ┌───────────▼──────────────────────────────────────┐
-         │              SERVICES TIERS                      │
-         │  Stripe Connect (paiements + KYC chauffeurs)    │
-         │  Mapbox (directions, geocoding, traffic)        │
-         │  Fournisseur identité (Stripe Identity / Ubble) │
-         │  Google Cloud Vision (OCR docs, SafeSearch)     │
-         │  ADEME (consommation véhicules)                 │
-         │  data.economie.gouv.fr (prix carburants)        │
-         │  TURN servers (WebRTC pour les appels)          │
-         │  E-mail (Brevo / Resend)                        │
-         └──────────────────────────────────────────────────┘
-```
-
-## Firestore — Collections principales
+Même stack que l'app de la paroisse : **Expo (React Native) + Supabase + EAS**.
+Aucun Mac nécessaire : les builds iOS/Android et l'envoi sur TestFlight / Play se font dans le cloud EAS.
 
 ```
-/users/{uid}
-  ├── profile (prénom, photo, note, isVerified, role)
-  ├── private (email, phone, dob, stripeAccountId)   // lecture : owner + admin
-  ├── vehicle (marque, modèle, plaque, consL100)      // lecture : owner + admin
-  └── verification (status, reviewedAt, reviewedBy)  // écriture : functions only
-
-/rides/{rideId}                    // course immédiate
-  ├── status (enum : searching | matched | pickup | inProgress | done | cancelled | dispute)
-  ├── driverId, passengerId
-  ├── pickup (geohash, lat, lng)
-  ├── destination (lat, lng, address)
-  ├── priceBreakdown (fuel, wear, fee)
-  ├── stripePaymentIntentId
-  ├── tasks (acceptTaskId, waitTaskId, confirmTaskId)
-  └── events[] (log immuable)
-
-/scheduled_rides/{rideId}         // covoiturage programmé
-/agreements/{agId}                // accords trajets réguliers
-/messages/{conversationId}/messages/{msgId}
-/safe_returns/{token}             // suivi « Je suis bien rentré »
-/wallets/{uid}                    // portefeuille (feature-flaggé)
-/wallet_codes/{codeId}            // codes de recharge
-/points/{uid}                     // solde points + historique
-/rewards/{rewardId}               // catalogue
-/events/{eventId}                 // festivals, concerts
-/disputes/{disputeId}
-/notifications/{uid}/items/{id}
-/merchant_partners/{merchantId}
-/merchant_codes/{codeId}
-/audit_logs/{id}                  // actions admin, immuables
-/config/{doc}                     // clés Remote Config cachées si besoin
+Voyaj APP/
+├── app/          Application mobile Expo (SDK 54, expo-router, TypeScript)
+├── supabase/     Backend : migrations SQL (schéma + RLS) et Edge Functions (Deno)
+├── web/          Pages publiques : jsbr/ (suivi « bien rentré »), retour-app/ (relais Stripe)
+└── docs/         Documentation
 ```
 
-## Cloud Functions — Modules
+## Principe de sécurité
 
-| Module | Triggers | Rôle |
-|--------|----------|------|
-| `auth` | onCreate, onDelete | Création du document user, nettoyage |
-| `rides/instant` | callable | Créer, accepter, arriver, prendre en charge, terminer, annuler, litige |
-| `rides/scheduled` | callable | Publier, réserver, annuler, générer les trajets d'un accord |
-| `rides/timers` | Cloud Tasks onTaskDispatched | Expiration 90 s, expiration attente 5 min, décision auto 2 min, confirmation 24 h |
-| `rides/cron` | Cloud Scheduler | Génération nocturne des 14 jours glissants, prélèvements 24 h avant |
-| `payment` | callable, Stripe webhook | Autoriser, capturer, rembourser, transférer, pénalité 5 € |
-| `pricing` | appelé en interne | Calcul du prix : carburant + usure + frais |
-| `identity` | Storage trigger, callable | Déclenchement vérification, mise à jour du statut |
-| `moderation` | callable, Storage trigger | SafeSearch photos, signalements |
-| `messaging` | callable | Envoyer message, supprimer, bloquer |
-| `points` | appelé en interne | Crédit de points (après confirmation de course) |
-| `rewards` | callable | Échanger des points contre une récompense |
-| `events` | callable (admin) | CRUD événements |
-| `notifications` | Firestore trigger | Deep links push via FCM |
-| `safeReturn` | callable, cron | Créer un suivi, alerter après 90 min |
-| `wallet` | callable | Créditer, débiter, recharger par code |
-| `merchantPortal` | callable | Stock, ventes, relevés, commandes |
-| `admin` | callable (admin claim) | Vérification manuelle, suspension, litiges, config |
+Le client ne modifie **jamais** l'argent, les points, les statuts de course, les vérifications ni les sanctions.
 
-## Règles de sécurité (principe)
+- **Row Level Security** sur toutes les tables ; droits d'écriture retirés au client sur les tables gérées par le serveur
+  (testé : toute tentative est refusée).
+- Profils : le client ne peut modifier que `name`, `phone`, `avatar_url`, `bio`, `terms_accepted_at` (droits par colonne).
+- Toute action sensible passe par une **Edge Function** (clé `service_role`), qui vérifie le JWT de l'appelant.
+- Code de prise en charge : table `ride_secrets` lisible seulement par le passager ; colonne `bookings.pickup_code` non lisible par le client
+  (le passager passe par `my_booking_code()`).
+- Appels internes (déclencheurs SQL, cron) : secret partagé `x-webhook-secret`, comparaison à temps constant.
 
-- **Firestore** : aucune écriture client sur `rides`, `wallets`, `points`, `verification`. Seules les fonctions (service account) peuvent écrire sur ces collections.
-- **Storage** : un utilisateur ne peut écrire que dans `uploads/{uid}/`, lecture publique interdite sauf `photos/{uid}/profile` signée.
-- **App Check** : activé en prod (Play Integrity sur Android, App Attest sur iOS). Les functions callable le vérifient.
+## Argent (Stripe)
 
-## Paiement — Flux détaillés
+| Cas | Au moment de la demande | À la fin | Annulation |
+|---|---|---|---|
+| Course immédiate | Autorisation (capture manuelle) via PaymentSheet | Capture + transfert au chauffeur (confirmation passager ou d'office à 24 h) | Autorisation libérée ; pénalité (5 € par défaut) capturée et reversée au chauffeur si annulation tardive ou passager absent |
+| Trajet programmé | Paiement immédiat à la réservation (places bloquées tout de suite) | Transfert au chauffeur 24 h après le départ, sauf litige | > 2 h avant : remboursement total ; < 2 h : pénalité retenue |
 
-### Course immédiate
+Chauffeurs : comptes **Stripe Connect Express** (`stripe-connect`). Webhook idempotent (`stripe-webhook`, table `stripe_events`).
+
+## Prix (`supabase/functions/_shared/pricing.ts`, testé)
+
 ```
-Passager demande → Function `createRide` → Stripe authorize (capture=manual)
-  → Si échec paiement : ride annulée, passager et chauffeur notifiés
-  → Si succès : Cloud Task "expiration 90s" créé
-Chauffeur accepte → `acceptRide` → Cloud Task annulé
-  → Service de premier plan chauffeur : navigation
-Chauffeur arrive → `driverArrived` (vérifié GPS < 150m) → Cloud Task "5 min passager"
-Passager monte → `confirmPickup` (code 4 chiffres) → Cloud Task annulé
-Fin de course → `endRide` (chauffeur) → passager confirme (ou 24h auto)
-  → Confirmation : Stripe capture → Stripe transfer au chauffeur → points crédités
-  → Dispute : argent conservé, admin examine
+coût        = conso (L/100) × prix carburant × km  +  0,12 €/km
+part        = coût / (places passagers + 1)        ← gain chauffeur, jamais de bénéfice
+frais Voyaj = 1 € + 0,02 €/km, plafonné à 4 €
+total       = part + frais
 ```
+Paramètres modifiables dans la table `pricing_config` (carburant, usure, frais, consommations par type, pénalité).
+Distance : Mapbox Directions si `MAPBOX_TOKEN` est défini, sinon vol d'oiseau × 1,3.
 
-### Trajet programmé
-```
-Chauffeur publie → `publishScheduledRide`
-Passager réserve → `bookRide` → Stripe charge immédiate
-24h avant → Cloud Scheduler → Stripe charge (MIT off-session si accordé)
-Annulation chauffeur < 2h → `cancelRide` → remboursement + Stripe prélève 5€ au chauffeur
-```
+## Edge Functions
 
-## CI/CD
+| Fonction | Rôle |
+|---|---|
+| `price-estimate` | Estimation affichée avant commande |
+| `ride-request` → `ride-confirm-payment` | Création + autorisation carte → envoi aux chauffeurs proches (≤ 8 km, 10 max) |
+| `ride-accept` | Le premier chauffeur qui accepte gagne (mise à jour conditionnelle atomique) |
+| `ride-status` | arrive / start (code 4 chiffres + ≤ 150 m) / end / confirm / cancel / report_absent (après 5 min) |
+| `ride-rate` | Note mutuelle (1 par personne et par trajet) |
+| `scheduled-publish` / `scheduled-book` / `scheduled-book-confirm` / `scheduled-cancel` | Covoiturage programmé |
+| `dispute-create` | Litige (suspend le virement automatique) |
+| `stripe-connect`, `stripe-webhook` | Comptes chauffeurs, événements Stripe |
+| `points-redeem` | Échange de points (débit atomique) |
+| `vehicle-save`, `verification-submit`, `account-delete` | Profil chauffeur, vérification, suppression RGPD |
+| `safe-return`, `safe-return-public` | « Je suis bien rentré » (lien public lu par `web/jsbr`) |
+| `notify-message` | Push à chaque message (déclencheur SQL) |
+| `maintenance` | Chaque minute (pg_cron) : expiration 90 s, confirmation d'office 24 h, places non payées, virements trajets, fin des suivis |
 
-| Workflow | Trigger | Actions |
-|----------|---------|---------|
-| `ci.yml` | push / PR | lint Dart, tests Flutter, tests Functions, tests règles Firestore |
-| `deploy_functions.yml` | push main | `firebase deploy --only functions,firestore,storage` (staging puis prod avec approbation) |
-| `ios_build.yml` | tag `ios-*` | build Xcode sur runner macOS, archive, TestFlight |
-| `android_build.yml` | tag `android-*` | `flutter build appbundle --release`, upload Play Store (track internal) |
+## Notifications
 
-## Environnements
+Service push **Expo** (comme la paroisse) : l'app enregistre son jeton dans `push_tokens`, le serveur appelle l'API Expo.
+Pas de Firebase côté serveur. Canal Android `ride-requests` en priorité maximale ; iOS `time-sensitive`.
+Android a quand même besoin d'un projet FCM (clé de compte de service déposée dans EAS) pour recevoir les push — comme la paroisse.
 
-| Env | Firebase project | Usage |
-|-----|-----------------|-------|
-| dev | `voyaj-dev` | Dev local, émulateurs |
-| staging | `voyaj-staging` | Tests intégration, TestFlight bêta |
-| prod | `voyaj-prod` | Production |
+## Temps réel
+
+Supabase Realtime sur `rides`, `driver_locations`, `messages`, `conversations`, `profiles`, `ride_offers` (filtré par la RLS).
+Le chauffeur en ligne envoie sa position toutes les ~10 s tant que l'app est ouverte.

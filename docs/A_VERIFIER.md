@@ -1,3 +1,8 @@
+> **Mise à jour 27/09/2026 (passage à Supabase)** : les « flags Remote Config » cités ci-dessous n'existent plus.
+> Aujourd'hui la course immédiate, les points et la pénalité d'absence (5 €, table `pricing_config`) sont **actifs**.
+> Pénalité passager absent : seulement 5 € (pas le prix de la course) — choix prudent en attendant l'avis d'un avocat.
+> Le portefeuille n'est pas implémenté.
+
 # Voyaj — Points à vérifier avec un professionnel
 
 Ces points sont implémentés derrière des **flags Remote Config** désactivés par défaut.
