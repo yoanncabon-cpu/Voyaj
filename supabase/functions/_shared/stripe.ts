@@ -8,7 +8,10 @@ import { conflict, type Row } from './http.ts';
 
 const key = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 
-export const stripe = new Stripe(key, {
+// Sans clé, Stripe refuse de s'initialiser et ferait planter toute fonction qui
+// importe ce module (dont la maintenance). On l'initialise avec une valeur
+// neutre ; les fonctions de paiement vérifient la vraie clé (assertStripeConfigured).
+export const stripe = new Stripe(key || 'sk_test_non_configure', {
   apiVersion: '2025-02-24.acacia',
   httpClient: Stripe.createFetchHttpClient(),
 });

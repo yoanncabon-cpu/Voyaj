@@ -6,8 +6,8 @@
   "build": {
     "base": {
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://REMPLACER.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REMPLACER",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ugfxltshmuskegskaili.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZnhsdHNobXVza2Vnc2thaWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NzkxOTAsImV4cCI6MjEwNjA1NTE5MH0.jA4lgb5g4AFuHKQLxleFVvyGU-cipoPDnlWHGB8_XNY",
         "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_REMPLACER"
       }
     },
