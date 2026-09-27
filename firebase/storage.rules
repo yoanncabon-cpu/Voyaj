@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuth() && request.auth.token.admin == true;
+    }
+
+    /// Vérifie que l'upload est une image valide
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+          && request.resource.size < 10 * 1024 * 1024; // max 10 Mo
+    }
+
+    /// Vérifie que l'upload est une image OU PDF (pour les docs d'identité)
+    function isValidDocument() {
+      return (request.resource.contentType.matches('image/.*')
+           || request.resource.contentType == 'application/pdf')
+          && request.resource.size < 20 * 1024 * 1024; // max 20 Mo
+    }
+
+    // =========================================================================
+    // PHOTOS DE PROFIL
+    // /avatars/{uid}/{filename}
+    // =========================================================================
+
+    match /avatars/{uid}/{filename} {
+      // Lecture publique (affiché dans l'app)
+      allow read: if isAuth();
+      // Écriture uniquement par le propriétaire, image seulement
+      allow create, update: if isOwner(uid) && isValidImage();
+      // Suppression : seulement le propriétaire
+      allow delete: if isOwner(uid);
+    }
+
+    // =========================================================================
+    // DOCUMENTS D'IDENTITÉ (KYC) — très sensibles
+    // /identity/{uid}/{filename}
+    // =========================================================================
+
+    match /identity/{uid}/{filename} {
+      // Lecture : uniquement le propriétaire et les admins
+      allow read: if isOwner(uid) || isAdmin();
+      // Upload uniquement par le propriétaire
+      allow create: if isOwner(uid) && isValidDocument();
+      // Pas de mise à jour ni suppression côté client (géré par une function admin)
+      allow update, delete: if false;
+    }
+
+    // =========================================================================
+    // CARTES GRISES / PERMIS
+    // /vehicles/{uid}/{filename}
+    // =========================================================================
+
+    match /vehicles/{uid}/{filename} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && isValidDocument();
+      allow update, delete: if false;
+    }
+
+    // =========================================================================
+    // PHOTOS DE MESSAGERIE
+    // /messages/{conversationId}/{filename}
+    // =========================================================================
+
+    match /messages/{conversationId}/{filename} {
+      // Lecture : les participants de la conversation
+      allow read: if isAuth() && (
+        conversationId.matches(request.auth.uid + '_.*') ||
+        conversationId.matches('.*_' + request.auth.uid)
+      );
+      // Upload par un des participants, image seulement
+      allow create: if isAuth() && (
+        conversationId.matches(request.auth.uid + '_.*') ||
+        conversationId.matches('.*_' + request.auth.uid)
+      ) && isValidImage();
+      allow update, delete: if false;
+    }
+
+    // =========================================================================
+    // IMAGES D'ÉVÉNEMENTS (publiées par les admins)
+    // /events/{eventId}/{filename}
+    // =========================================================================
+
+    match /events/{eventId}/{filename} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // EXPORTS ADMIN (rapports, etc.)
+    // /admin/{filename}
+    // =========================================================================
+
+    match /admin/{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // =========================================================================
+    // TOUT LE RESTE : REFUSÉ
+    // =========================================================================
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

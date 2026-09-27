@@ -1,0 +1,262 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+
+    /// Utilisateur authentifié
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    /// L'utilisateur est le propriétaire du document
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    /// L'utilisateur a le custom claim admin
+    function isAdmin() {
+      return isAuth() && request.auth.token.admin == true;
+    }
+
+    /// L'utilisateur a le custom claim merchant
+    function isMerchant() {
+      return isAuth() && request.auth.token.merchant == true;
+    }
+
+    /// Les champs monétaires, statuts et points ne peuvent PAS être écrits par le client.
+    /// Ces données ne sont modifiables que par les Cloud Functions (service account).
+    function noMoneyWrite() {
+      return !request.resource.data.keys().hasAny([
+        'balance', 'points', 'pointsBalance', 'status',
+        'stripePaymentIntentId', 'stripeTransferId',
+        'priceBreakdown', 'isVerified', 'verificationStatus',
+        'warningCount', 'isSuspended'
+      ]);
+    }
+
+    /// Taille maximale d'un document public (anti-abus)
+    function validSize() {
+      return request.resource.data.size() < 50;
+    }
+
+    // =========================================================================
+    // USERS
+    // =========================================================================
+
+    match /users/{uid} {
+      // Lecture publique minimale (prénom, photo, note, badge vérifié)
+      allow read: if isAuth();
+
+      // Création initiale (uniquement par le propriétaire, champs limités)
+      allow create: if isOwner(uid) && noMoneyWrite() && validSize();
+
+      // Mise à jour : uniquement par le propriétaire et uniquement les champs non-monétaires
+      allow update: if isOwner(uid) && noMoneyWrite();
+
+      // Suppression : interdite côté client (gérée par une function après confirmation)
+      allow delete: if false;
+
+      // Sous-collection privée : uniquement le propriétaire et l'admin
+      match /private/{doc} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false; // Fonctions uniquement
+      }
+
+      // Véhicule : lecture par tout utilisateur connecté, écriture par le propriétaire (champs non-vérif)
+      match /vehicle/{doc} {
+        allow read: if isAuth();
+        allow create: if isOwner(uid) && !request.resource.data.keys().hasAny(['isVerified', 'verificationStatus']);
+        allow update: if isOwner(uid) && !request.resource.data.keys().hasAny(['isVerified', 'verificationStatus']);
+        allow delete: if false; // Suppression gérée par une function
+      }
+
+      // Vérification d'identité : lecture par le propriétaire et l'admin, écriture : fonctions uniquement
+      match /verification/{doc} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false;
+      }
+    }
+
+    // =========================================================================
+    // COURSES IMMÉDIATES
+    // =========================================================================
+
+    match /rides/{rideId} {
+      // Lecture : le chauffeur, le passager ou l'admin
+      allow read: if isAuth() && (
+        resource.data.driverId == request.auth.uid ||
+        resource.data.passengerId == request.auth.uid ||
+        isAdmin()
+      );
+
+      // Aucune écriture client : tout passe par les Cloud Functions callable
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // COVOITURAGE PROGRAMMÉ
+    // =========================================================================
+
+    match /scheduled_rides/{rideId} {
+      // Lecture : tout utilisateur connecté peut voir les trajets publiés
+      allow read: if isAuth() && (
+        resource.data.status == 'published' ||
+        resource.data.driverId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false; // Fonctions uniquement
+    }
+
+    // =========================================================================
+    // ACCORDS (trajets réguliers)
+    // =========================================================================
+
+    match /agreements/{agId} {
+      allow read: if isAuth() && (
+        resource.data.driverId == request.auth.uid ||
+        resource.data.passengerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false;
+    }
+
+    // =========================================================================
+    // MESSAGERIE
+    // =========================================================================
+
+    match /messages/{conversationId} {
+      // Lecture : uniquement les participants
+      allow read: if isAuth() && (
+        conversationId.matches(request.auth.uid + '_.*') ||
+        conversationId.matches('.*_' + request.auth.uid)
+      );
+      allow write: if false; // Envoi via function (pour modération)
+
+      match /messages/{msgId} {
+        allow read: if isAuth() && (
+          conversationId.matches(request.auth.uid + '_.*') ||
+          conversationId.matches('.*_' + request.auth.uid)
+        );
+        allow write: if false;
+      }
+    }
+
+    // =========================================================================
+    // SUIVI « JE SUIS BIEN RENTRÉ »
+    // =========================================================================
+
+    match /safe_returns/{token} {
+      // Lecture publique (page web sans compte)
+      allow read: if true;
+      // Écriture : le propriétaire uniquement (création, mise à jour position)
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuth() && resource.data.uid == request.auth.uid
+        && !request.resource.data.keys().hasAny(['uid', 'token']);
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // PORTEFEUILLE (feature-flaggé)
+    // =========================================================================
+
+    match /wallets/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false; // Fonctions uniquement
+    }
+
+    // =========================================================================
+    // POINTS & RÉCOMPENSES
+    // =========================================================================
+
+    match /points/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false;
+    }
+
+    match /rewards/{rewardId} {
+      // Catalogue public
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /user_rewards/{uid}/items/{itemId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false;
+    }
+
+    // =========================================================================
+    // ÉVÉNEMENTS
+    // =========================================================================
+
+    match /events/{eventId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // LITIGES
+    // =========================================================================
+
+    match /disputes/{disputeId} {
+      allow read: if isAuth() && (
+        resource.data.driverId == request.auth.uid ||
+        resource.data.passengerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuth() && (
+        request.resource.data.driverId == request.auth.uid ||
+        request.resource.data.passengerId == request.auth.uid
+      ) && !request.resource.data.keys().hasAny(['status', 'resolution', 'adminNote']);
+      allow update: if false; // Résolution par l'admin uniquement
+    }
+
+    // =========================================================================
+    // NOTIFICATIONS
+    // =========================================================================
+
+    match /notifications/{uid}/items/{notifId} {
+      allow read: if isOwner(uid);
+      allow update: if isOwner(uid) && request.resource.data.keys().hasOnly(['readAt']);
+      allow create, delete: if false;
+    }
+
+    // =========================================================================
+    // COMMERÇANTS PARTENAIRES (Voyaj Pro)
+    // =========================================================================
+
+    match /merchant_partners/{merchantId} {
+      allow read: if isAdmin() ||
+        (isMerchant() && request.auth.token.merchantId == merchantId);
+      allow write: if isAdmin();
+    }
+
+    match /merchant_codes/{codeId} {
+      allow read: if isAdmin() ||
+        (isMerchant() && resource.data.merchantId == request.auth.token.merchantId);
+      allow write: if false; // Fonctions uniquement
+    }
+
+    // =========================================================================
+    // JOURNAL D'AUDIT (immuable)
+    // =========================================================================
+
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Fonctions uniquement, jamais le client
+    }
+
+    // =========================================================================
+    // TOUT LE RESTE : REFUSÉ
+    // =========================================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
