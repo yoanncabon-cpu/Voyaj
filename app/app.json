@@ -37,7 +37,8 @@
       "package": "com.voyaj.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#4F46E5"
+        "backgroundImage": "./assets/adaptive-background.png",
+        "backgroundColor": "#1B2550"
       },
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
@@ -71,7 +72,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#4F46E5"
+          "backgroundColor": "#15162A"
         }
       ],
       [
@@ -84,8 +85,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#4F46E5"
+          "icon": "./assets/notification-icon.png",
+          "color": "#3DDC97"
         }
       ],
       [

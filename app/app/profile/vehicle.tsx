@@ -66,7 +66,7 @@ export default function VehicleScreen() {
           {TYPES.map((t) => (
             <Pressable key={t.id} disabled={locked} onPress={() => setType(t.id)}
               style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: type === t.id ? c.primary : c.surfaceAlt }}>
-              <T color={type === t.id ? '#fff' : c.text} style={{ fontWeight: '600' }}>{t.label}</T>
+              <T color={type === t.id ? c.onPrimary : c.text} style={{ fontWeight: '600' }}>{t.label}</T>
             </Pressable>
           ))}
         </Row>

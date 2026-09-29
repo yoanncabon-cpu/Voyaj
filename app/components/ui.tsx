@@ -65,8 +65,10 @@ export function Button({
   style?: ViewStyle;
 }) {
   const c = useColors();
-  const bg = { primary: c.primary, secondary: c.surfaceAlt, danger: c.danger, ghost: 'transparent', success: c.success, light: 'transparent' }[variant];
-  const fg = variant === 'secondary' ? c.text : variant === 'ghost' ? c.primary : c.onPrimary;
+  const bg = { primary: c.accent, secondary: c.surfaceAlt, danger: c.danger, ghost: 'transparent', success: c.success, light: 'transparent' }[variant];
+  const fg = {
+    primary: c.onAccent, secondary: c.text, ghost: c.primary, danger: '#FFFFFF', success: c.onPrimary, light: '#FFFFFF',
+  }[variant];
   const border = variant === 'light' ? { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)' } : null;
   const off = disabled || loading;
   return (

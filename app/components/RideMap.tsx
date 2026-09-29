@@ -67,7 +67,7 @@ export function RideMap({
       {driver && (
         <Marker coordinate={{ latitude: driver.lat, longitude: driver.lng }} title="Chauffeur" anchor={{ x: 0.5, y: 0.5 }}>
           <View style={{ backgroundColor: c.primary, borderRadius: 18, padding: 6, borderWidth: 2, borderColor: '#fff' }}>
-            <Ionicons name="car" size={18} color="#fff" />
+            <Ionicons name="car" size={18} color={c.onPrimary} />
           </View>
         </Marker>
       )}

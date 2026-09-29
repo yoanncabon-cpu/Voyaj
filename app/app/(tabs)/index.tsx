@@ -41,8 +41,8 @@ export default function Home() {
           {(['passenger', 'driver'] as const).map((m) => (
             <Pressable key={m} onPress={() => !ride && setMode(m)} style={[styles.toggleItem, mode === m && { backgroundColor: c.primary }]}
               accessibilityRole="tab" accessibilityState={{ selected: mode === m }}>
-              <Ionicons name={m === 'passenger' ? 'person' : 'car'} size={16} color={mode === m ? '#fff' : c.textSecondary} />
-              <T variant="small" color={mode === m ? '#fff' : c.textSecondary} style={{ fontWeight: '700' }}>
+              <Ionicons name={m === 'passenger' ? 'person' : 'car'} size={16} color={mode === m ? c.onPrimary : c.textSecondary} />
+              <T variant="small" color={mode === m ? c.onPrimary : c.textSecondary} style={{ fontWeight: '700' }}>
                 {m === 'passenger' ? 'Passager' : 'Chauffeur'}
               </T>
             </Pressable>

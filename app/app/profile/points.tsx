@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { shortDate } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
-import { radius, useColors } from '@/lib/theme';
+import { brand, radius, useColors } from '@/lib/theme';
 import type { Reward } from '@/lib/types';
 
 interface Redemption { id: string; code: string; reward_id: string; status: string; created_at: string }
@@ -60,9 +60,9 @@ export default function Points() {
 
   return (
     <Screen title="Points Voyaj">
-      <View style={{ backgroundColor: c.primary, borderRadius: radius.lg, padding: 24, alignItems: 'center', marginBottom: 16 }}>
-        <T color="rgba(255,255,255,0.8)">Votre solde</T>
-        <T variant="big" color="#fff">{balance} pts</T>
+      <View style={{ backgroundColor: brand.navy, borderRadius: radius.lg, padding: 24, alignItems: 'center', marginBottom: 16 }}>
+        <T color={brand.cream} style={{ opacity: 0.8 }}>Votre solde</T>
+        <T variant="big" color={brand.green}>{balance} pts</T>
       </View>
       <T variant="label" style={{ marginBottom: 8 }}>Gagner des points</T>
       <Card>

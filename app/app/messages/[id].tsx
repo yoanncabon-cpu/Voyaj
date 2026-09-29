@@ -102,8 +102,8 @@ export default function Chat() {
                 borderRadius: radius.md, backgroundColor: mine ? c.primary : c.surface,
                 borderBottomRightRadius: mine ? 4 : radius.md, borderBottomLeftRadius: mine ? radius.md : 4,
               }}>
-                <T color={mine ? '#fff' : c.text}>{item.content}</T>
-                <T variant="small" color={mine ? 'rgba(255,255,255,0.7)' : c.textMuted} style={{ fontSize: 11, marginTop: 2, textAlign: 'right' }}>
+                <T color={mine ? c.onPrimary : c.text}>{item.content}</T>
+                <T variant="small" color={mine ? c.onPrimary : c.textMuted} style={{ fontSize: 11, marginTop: 2, textAlign: 'right', opacity: mine ? 0.7 : 1 }}>
                   {new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </T>
               </View>
@@ -115,7 +115,7 @@ export default function Chat() {
             style={{ flex: 1, backgroundColor: c.surface, color: c.text, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, maxHeight: 120 }} />
           <Pressable onPress={send} disabled={sending || !text.trim()} hitSlop={8}
             style={{ backgroundColor: c.primary, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', opacity: text.trim() ? 1 : 0.4 }}>
-            <Ionicons name="send" size={20} color="#fff" />
+            <Ionicons name="send" size={20} color={c.onPrimary} />
           </Pressable>
         </Row>
       </KeyboardAvoidingView>
