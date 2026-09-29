@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.next-codex/
+.next-check/
+dist/
+.env.local
+.env
+*.mp4
+*.mov
+generated/*
+!generated/scenes.json
+*.tsbuildinfo
+*.log

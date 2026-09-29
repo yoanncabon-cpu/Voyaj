@@ -1,0 +1,31 @@
+{
+  "name": "voyaj-landing",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test-api": "tsx index.ts",
+    "generate-scenes": "tsx generate-scenes.ts",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@higgsfield/client": "latest",
+    "next": "^15.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "dotenv": "^16.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

@@ -1,0 +1,63 @@
+/* Motion finishing layer: independent of the page's visual composition. */
+.motion-control {
+  position: fixed;
+  right: 18px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 244, 226, .24);
+  border-radius: 999px;
+  background: rgba(15, 16, 32, .88);
+  color: #fff4e2;
+  font: 500 11px/1.5 var(--font-poppins), system-ui, sans-serif;
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.motion-control:hover { border-color: #3ddc97; background: #15162a; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 3px solid #3ddc97;
+  outline-offset: 5px;
+}
+section[id] { scroll-margin-top: 88px; }
+.stage-video { transition: opacity .9s ease, transform 1.4s ease; }
+.stage-video.is-on { transform: scale(1.025); }
+.route-car { transition: left .12s linear, top .12s linear; }
+.btn { transition: transform .25s ease, box-shadow .25s ease, background .25s ease; }
+.btn:active { transform: translateY(1px) scale(.98); }
+
+html[data-motion="paused"] *, html[data-motion="paused"] *::before,
+html[data-motion="paused"] *::after {
+  animation-play-state: paused !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+/* Entrance content stays readable when its animation is disabled. */
+html[data-motion="paused"] .word,
+html[data-motion="paused"] .reveal,
+html[data-motion="paused"] .stage-copy,
+html[data-motion="paused"] .stage-copy > *,
+html[data-motion="paused"] .stage-toast {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+html[data-motion="paused"] { scroll-behavior: auto; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .word, .reveal, .stage-copy, .stage-copy > *, .stage-toast {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+@media (max-width: 600px) {
+  .motion-control { right: 12px; padding: 9px 12px; font-size: 10px; }
+}
