@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AddressField } from '@/components/AddressField';
 import { RideMap, type LatLng } from '@/components/RideMap';
-import { Badge, Button, Card, ListItem, Route, Row, T } from '@/components/ui';
+import { Badge, Button, Card, ListItem, Route, Row, shadow, T, tap } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDriverMode } from '@/lib/driverMode';
 import { eur, km, RIDE_STATUS_LABEL } from '@/lib/format';
@@ -37,9 +37,10 @@ export default function Home() {
       <RideMap me={me} pickup={ride ? { lat: ride.pickup_lat, lng: ride.pickup_lng } : null}
         dest={ride ? { lat: ride.dest_lat, lng: ride.dest_lng } : null} />
       <SafeAreaView edges={['top']} style={{ paddingHorizontal: space.md }}>
-        <View style={[styles.toggle, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <View style={[styles.toggle, { backgroundColor: c.surface, borderColor: c.border }, shadow.soft]}>
           {(['passenger', 'driver'] as const).map((m) => (
-            <Pressable key={m} onPress={() => !ride && setMode(m)} style={[styles.toggleItem, mode === m && { backgroundColor: c.primary }]}
+            <Pressable key={m} onPress={() => { if (!ride && mode !== m) { tap(); setMode(m); } }}
+              style={[styles.toggleItem, mode === m && { backgroundColor: c.primary }]}
               accessibilityRole="tab" accessibilityState={{ selected: mode === m }}>
               <Ionicons name={m === 'passenger' ? 'person' : 'car'} size={16} color={mode === m ? c.onPrimary : c.textSecondary} />
               <T variant="small" color={mode === m ? c.onPrimary : c.textSecondary} style={{ fontWeight: '700' }}>
@@ -49,11 +50,13 @@ export default function Home() {
           ))}
         </View>
       </SafeAreaView>
-      <View style={[styles.sheet, { backgroundColor: c.bg }]}>
-        <ScrollView contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
+      <View style={[styles.sheet, { backgroundColor: c.bg }, shadow.raised]}>
+        <View style={[styles.handle, { backgroundColor: c.border }]} />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: space.md, paddingBottom: space.md }} keyboardShouldPersistTaps="handled">
           {ride ? <ActiveRideCard rideId={ride.id} isDriver={ride.driver_id === userId} status={RIDE_STATUS_LABEL[ride.status]}
             from={ride.pickup_address} to={ride.dest_address} price={ride.driver_id === userId ? ride.price.driverEarningsEur : ride.price.passengerTotalEur} />
-            : mode === 'passenger' ? <PassengerPanel /> : <DriverPanel verified={!!profile?.is_verified} />}
+            : mode === 'passenger' ? <PassengerPanel firstName={profile?.name?.split(' ')[0]} userId={userId} />
+              : <DriverPanel verified={!!profile?.is_verified} />}
         </ScrollView>
       </View>
     </View>
@@ -77,25 +80,82 @@ function ActiveRideCard({ rideId, isDriver, status, from, to, price }: {
   );
 }
 
-function PassengerPanel() {
+type Recent = { lat: number; lng: number; address: string };
+
+/** Dernières destinations distinctes du passager (courses instantanées). */
+function useRecentDestinations(userId: string | null) {
+  const [recents, setRecents] = useState<Recent[]>([]);
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('rides').select('dest_lat, dest_lng, dest_address')
+      .eq('passenger_id', userId).order('created_at', { ascending: false }).limit(20)
+      .then(({ data }) => {
+        const seen = new Set<string>();
+        const out: Recent[] = [];
+        for (const r of data ?? []) {
+          const key = String(r.dest_address).toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push({ lat: r.dest_lat, lng: r.dest_lng, address: r.dest_address });
+          if (out.length === 3) break;
+        }
+        setRecents(out);
+      });
+  }, [userId]);
+  return recents;
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  return h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
+}
+
+function PassengerPanel({ firstName, userId }: { firstName?: string; userId: string | null }) {
   const c = useColors();
   const router = useRouter();
+  const recents = useRecentDestinations(userId);
   return (
     <>
-      <Pressable onPress={() => router.push('/ride/new')}
-        style={[styles.search, { backgroundColor: c.surface, borderColor: c.border }]} accessibilityRole="button">
-        <Ionicons name="search" size={22} color={c.primary} />
-        <T variant="h2" color={c.textSecondary}>Où allez-vous ?</T>
+      <T variant="title">{greeting()}{firstName ? ` ${firstName}` : ''}</T>
+      <T color={c.textSecondary} style={{ marginTop: 2, marginBottom: space.md }}>Où allons-nous aujourd&apos;hui ?</T>
+
+      <Pressable onPress={() => { tap(); router.push('/ride/new'); }} accessibilityRole="button" accessibilityLabel="Rechercher une destination"
+        style={({ pressed }) => [styles.search, { backgroundColor: c.surface, borderColor: c.border, transform: [{ scale: pressed ? 0.985 : 1 }] }, shadow.soft]}>
+        <View style={[styles.searchIcon, { backgroundColor: c.accent }]}>
+          <Ionicons name="search" size={18} color={c.onAccent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <T variant="h2">Où allez-vous ?</T>
+          <T variant="small">Ville, adresse, gare…</T>
+        </View>
+        <View style={[styles.nowPill, { backgroundColor: c.surfaceAlt }]}>
+          <Ionicons name="flash" size={13} color={c.primary} />
+          <T variant="small" color={c.text} style={{ fontWeight: '700' }}>Maintenant</T>
+        </View>
       </Pressable>
+
+      {recents.length > 0 && (
+        <View style={{ marginTop: space.md }}>
+          {recents.map((r) => (
+            <ListItem key={r.address} icon="time-outline" title={r.address.split(',')[0]} subtitle={r.address.split(',').slice(1).join(',').trim() || undefined}
+              onPress={() => router.push({ pathname: '/ride/new', params: { destLat: String(r.lat), destLng: String(r.lng), destAddress: r.address } })} />
+          ))}
+        </View>
+      )}
+
       <Row gap={space.sm} style={{ marginTop: space.md }}>
         <Card style={{ flex: 1 }} onPress={() => router.push('/(tabs)/trajets')}>
-          <Ionicons name="calendar" size={24} color={c.primary} />
-          <T variant="h2" style={{ marginTop: 8 }}>Covoiturage</T>
+          <View style={[styles.cardIcon, { backgroundColor: c.primarySoft }]}>
+            <Ionicons name="calendar" size={20} color={c.primary} />
+          </View>
+          <T variant="h2">Covoiturage</T>
           <T variant="small">Trajets programmés</T>
         </Card>
         <Card style={{ flex: 1 }} onPress={() => router.push('/safe-return')}>
-          <Ionicons name="home" size={24} color={c.success} />
-          <T variant="h2" style={{ marginTop: 8 }}>Bien rentré</T>
+          <View style={[styles.cardIcon, { backgroundColor: c.accentSoft }]}>
+            <Ionicons name="home" size={20} color={c.success} />
+          </View>
+          <T variant="h2">Bien rentré</T>
           <T variant="small">Partager mon retour</T>
         </Card>
       </Row>
@@ -172,6 +232,10 @@ function DriverPanel({ verified }: { verified: boolean }) {
 const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', alignSelf: 'center', borderRadius: radius.pill, padding: 4, borderWidth: StyleSheet.hairlineWidth, marginTop: space.sm },
   toggleItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 18, borderRadius: radius.pill },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '62%', borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '66%', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  handle: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 10, marginBottom: 14 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14, borderRadius: radius.lg - 4, borderWidth: StyleSheet.hairlineWidth },
+  searchIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  nowPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill },
+  cardIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
 });

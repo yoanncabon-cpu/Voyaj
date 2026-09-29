@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AddressField } from '@/components/AddressField';
 import { Button, Card, Row, Screen, Spacer, T } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,8 +15,12 @@ export default function NewRide() {
   const c = useColors();
   const router = useRouter();
   const { profile } = useAuth();
+  const params = useLocalSearchParams<{ destLat?: string; destLng?: string; destAddress?: string }>();
+  const preset = params.destAddress && params.destLat && params.destLng
+    ? { lat: Number(params.destLat), lng: Number(params.destLng), address: params.destAddress }
+    : null;
   const [pickup, setPickup] = useState<Place | null>(null);
-  const [dest, setDest] = useState<Place | null>(null);
+  const [dest, setDest] = useState<Place | null>(preset);
   const [estimate, setEstimate] = useState<{ price: PriceBreakdown; distanceKm: number } | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [busy, setBusy] = useState(false);
