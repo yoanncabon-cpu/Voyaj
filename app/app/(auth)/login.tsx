@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Button, Field, Screen, Spacer, T } from '@/components/ui';
+import { AuthHeader, Button, Field, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
@@ -25,9 +25,8 @@ export default function Login() {
   const forgot = () => router.push({ pathname: '/(auth)/forgot', params: { email: email.trim() } });
 
   return (
-    <Screen title="Connexion">
-      <T variant="title">Bon retour 👋</T>
-      <Spacer />
+    <Screen title="">
+      <AuthHeader title="Bon retour" subtitle="Connectez-vous pour trouver ou proposer un trajet." />
       <Field label="E-mail" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
         autoComplete="email" textContentType="emailAddress" />
       <Field label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password"

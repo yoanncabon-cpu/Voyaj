@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Button, Field, Screen, Spacer, T } from '@/components/ui';
+import { AuthHeader, Button, Field, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function VerifyEmail() {
@@ -26,10 +26,8 @@ export default function VerifyEmail() {
   };
 
   return (
-    <Screen title="Confirmer mon e-mail">
-      <T variant="title">Vérifiez vos e-mails</T>
-      <T variant="small" style={{ marginTop: 6 }}>Saisissez le code envoyé à {email}. Pensez à regarder dans les spams.</T>
-      <Spacer />
+    <Screen title="">
+      <AuthHeader title="Confirmez votre e-mail" subtitle={`Saisissez le code envoyé à ${email}. Pensez à regarder dans les spams.`} />
       <Field label="Code reçu par e-mail" value={code} onChangeText={(v) => setCode(v.replace(/\D/g, ''))}
         keyboardType="number-pad" maxLength={10} autoComplete="one-time-code" textContentType="oneTimeCode" error={error} />
       <Button title="Confirmer" onPress={submit} loading={busy} disabled={!code} />

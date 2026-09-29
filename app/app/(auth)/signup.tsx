@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Button, Field, Screen, Spacer, T } from '@/components/ui';
+import { AuthHeader, Button, Field, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PHONE_FR = /^(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}$/;
@@ -36,10 +36,8 @@ export default function Signup() {
   };
 
   return (
-    <Screen title="Inscription">
-      <T variant="title">Créer votre compte</T>
-      <T variant="small" style={{ marginTop: 6 }}>Vos coordonnées ne sont jamais montrées aux autres membres.</T>
-      <Spacer />
+    <Screen title="">
+      <AuthHeader title="Créer votre compte" subtitle="Vos coordonnées ne sont jamais montrées aux autres membres." />
       <Field label="Prénom et nom" value={name} onChangeText={setName} autoComplete="name" textContentType="name" />
       <Field label="E-mail" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
         autoComplete="email" textContentType="emailAddress" />

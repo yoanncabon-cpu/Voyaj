@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "voyaj-landing",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "web/landing"],
+      "port": 3000,
+      "url": "http://localhost:3000"
+    },
+    {
+      "name": "voyaj-app-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "web", "--prefix", "app"],
+      "port": 8081,
+      "url": "http://localhost:8081"
+    }
+  ]
+}

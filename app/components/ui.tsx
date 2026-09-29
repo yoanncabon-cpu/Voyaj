@@ -1,14 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text,
   TextInput, type TextInputProps, View, type ViewStyle,
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
 import { radius, space, useColors } from '@/lib/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+export function tap(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
+  if (Platform.OS !== 'web') Haptics.impactAsync(style).catch(() => {});
+}
+
+export const shadow = {
+  soft: { boxShadow: '0 2px 12px rgba(21, 22, 42, 0.07)' },
+  raised: { boxShadow: '0 -6px 24px rgba(21, 22, 42, 0.12)' },
+} as const;
 
 /** Écran standard : fond, marges, défilement, clavier. */
 export function Screen({
@@ -37,12 +47,13 @@ export function Screen({
       {title != null && (
         <View style={styles.header}>
           {back && router.canGoBack() ? (
-            <Pressable hitSlop={12} onPress={() => router.back()} accessibilityLabel="Retour">
-              <Ionicons name="chevron-back" size={26} color={c.text} />
+            <Pressable hitSlop={10} onPress={() => { tap(); router.back(); }} accessibilityRole="button" accessibilityLabel="Retour"
+              style={({ pressed }) => [styles.backBtn, { backgroundColor: c.surface, opacity: pressed ? 0.7 : 1 }, shadow.soft]}>
+              <Ionicons name="chevron-back" size={22} color={c.text} />
             </Pressable>
-          ) : <View style={{ width: 26 }} />}
-          <Text style={[styles.headerTitle, { color: c.text }]} numberOfLines={1}>{title}</Text>
-          <View style={{ minWidth: 26, alignItems: 'flex-end' }}>{right}</View>
+          ) : <View style={{ width: 40 }} />}
+          <Text style={[styles.headerTitle, { color: c.text }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
+          <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{right}</View>
         </View>
       )}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -71,14 +82,17 @@ export function Button({
   }[variant];
   const border = variant === 'light' ? { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)' } : null;
   const off = disabled || loading;
+  const lift = variant === 'primary' && !off ? { boxShadow: '0 6px 18px rgba(61, 220, 151, 0.35)' } : null;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => { tap(variant === 'danger' ? Haptics.ImpactFeedbackStyle.Medium : undefined); onPress(); }}
       disabled={off}
       accessibilityRole="button"
+      accessibilityState={{ disabled: !!off, busy: !!loading }}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: bg, opacity: off ? 0.5 : pressed ? 0.85 : 1 },
+        { backgroundColor: bg, opacity: off ? 0.45 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
+        lift,
         border,
         style,
       ]}
@@ -96,28 +110,45 @@ export function Button({
 export function Card({ children, style, onPress }: { children: React.ReactNode; style?: ViewStyle; onPress?: () => void }) {
   const c = useColors();
   const content = (
-    <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }, style]}>{children}</View>
+    <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }, shadow.soft, style]}>{children}</View>
   );
   if (!onPress) return content;
-  return <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>{content}</Pressable>;
+  return (
+    <Pressable onPress={() => { tap(); onPress(); }} accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}>
+      {content}
+    </Pressable>
+  );
 }
 
-export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string | null }) {
+export function Field({ label, error, onFocus, onBlur, ...props }: TextInputProps & { label: string; error?: string | null }) {
   const c = useColors();
+  const [focused, setFocused] = useState(false);
+  const borderColor = error ? c.danger : focused ? c.accent : c.border;
   return (
     <View style={{ marginBottom: space.md }}>
-      <Text style={[styles.label, { color: c.textSecondary }]}>{label}</Text>
+      <Text style={[styles.label, { color: focused ? c.text : c.textSecondary }]}>{label}</Text>
       <TextInput
         placeholderTextColor={c.textMuted}
+        accessibilityLabel={label}
         {...props}
+        onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+        onBlur={(e) => { setFocused(false); onBlur?.(e); }}
         style={[
           styles.input,
-          { backgroundColor: c.surface, borderColor: error ? c.danger : c.border, color: c.text },
+          { backgroundColor: focused ? c.surface : c.surfaceAlt, borderColor, color: c.text },
+          focused && { boxShadow: `0 0 0 3px ${c.accentSoft}` },
+          Platform.OS === 'web' && ({ outlineStyle: 'none' } as object),
           props.multiline && { minHeight: 100, textAlignVertical: 'top' },
           props.style,
         ]}
       />
-      {!!error && <Text style={{ color: c.danger, marginTop: 4, fontSize: 13 }}>{error}</Text>}
+      {!!error && (
+        <View style={[styles.row, { gap: 6, marginTop: 6 }]}>
+          <Ionicons name="alert-circle" size={15} color={c.danger} />
+          <Text style={{ color: c.danger, fontSize: 13, flex: 1 }} accessibilityLiveRegion="polite">{error}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -132,18 +163,32 @@ export function T({ children, variant = 'body', color, style, center, numberOfLi
 }) {
   const c = useColors();
   const base = {
-    big: { fontSize: 34, fontWeight: '800' as const },
-    title: { fontSize: 26, fontWeight: '800' as const },
-    h2: { fontSize: 18, fontWeight: '700' as const },
-    body: { fontSize: 16 },
-    small: { fontSize: 13 },
-    label: { fontSize: 13, fontWeight: '600' as const, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+    big: { fontSize: 36, fontWeight: '800' as const, letterSpacing: -0.8 },
+    title: { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.6, lineHeight: 34 },
+    h2: { fontSize: 18, fontWeight: '700' as const, letterSpacing: -0.2 },
+    body: { fontSize: 16, lineHeight: 22 },
+    small: { fontSize: 13, lineHeight: 18 },
+    label: { fontSize: 12, fontWeight: '700' as const, textTransform: 'uppercase' as const, letterSpacing: 0.8 },
   }[variant];
   const defaultColor = variant === 'small' || variant === 'label' ? c.textSecondary : c.text;
   return (
     <Text numberOfLines={numberOfLines} style={[base, { color: color ?? defaultColor }, center && { textAlign: 'center' }, style]}>
       {children}
     </Text>
+  );
+}
+
+/** En-tête des écrans de connexion : logo Voyaj, titre, sous-titre. */
+export function AuthHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  const c = useColors();
+  return (
+    <View style={{ marginTop: space.sm, marginBottom: space.lg }}>
+      <View style={[styles.authLogo, shadow.soft]}>
+        <Image source={require('@/assets/icon.png')} style={{ width: '100%', height: '100%', borderRadius: 16 }} accessibilityLabel="Logo Voyaj" />
+      </View>
+      <T variant="title">{title}</T>
+      {!!subtitle && <T color={c.textSecondary} style={{ marginTop: 6 }}>{subtitle}</T>}
+    </View>
   );
 }
 
@@ -182,7 +227,8 @@ export function ListItem({ icon, title, subtitle, onPress, right, danger }: {
 }) {
   const c = useColors();
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.listItem, { borderColor: c.border, opacity: pressed ? 0.7 : 1 }]}>
+    <Pressable onPress={onPress && (() => { tap(); onPress(); })} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}
+      style={({ pressed }) => [styles.listItem, { borderColor: c.border, opacity: pressed ? 0.6 : 1 }]}>
       {icon && (
         <View style={[styles.listIcon, { backgroundColor: danger ? c.dangerSoft : c.primarySoft }]}>
           <Ionicons name={icon} size={20} color={danger ? c.danger : c.primary} />
@@ -260,15 +306,17 @@ export function Avatar({ name, url, size = 48 }: { name?: string | null; url?: s
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.md, paddingVertical: 10, gap: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center' },
-  button: { minHeight: 54, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg },
-  buttonText: { fontSize: 16, fontWeight: '700' },
-  card: { borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, padding: space.md, marginBottom: space.md },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  input: { borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.md, paddingVertical: 8, gap: 8 },
+  headerTitle: { fontSize: 17, fontWeight: '800', flex: 1, textAlign: 'center', letterSpacing: -0.3 },
+  authLogo: { width: 56, height: 56, borderRadius: 16, marginBottom: space.md },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  button: { minHeight: 54, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg },
+  buttonText: { fontSize: 16, fontWeight: '800', letterSpacing: -0.1 },
+  card: { borderRadius: radius.lg - 4, borderWidth: StyleSheet.hairlineWidth, padding: space.md + 2, marginBottom: space.md },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 7 },
+  input: { borderWidth: 1.5, borderRadius: radius.md - 2, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  listItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  listIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  listItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  listIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   emptyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: space.md },
 });

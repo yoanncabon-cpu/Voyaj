@@ -2,11 +2,10 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StripeProvider } from '@stripe/stripe-react-native';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { subscribeToForegroundRideRequests, subscribeToNotificationTaps } from '@/lib/notifications';
-import { STRIPE_PUBLISHABLE_KEY } from '@/lib/payments';
 import { Loading } from '@/components/ui';
+import StripeRoot from '@/components/StripeRoot';
 
 /**
  * Garde de navigation : non connecté → accueil ; connecté sans CGU acceptées
@@ -70,12 +69,12 @@ function Root() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} merchantIdentifier="merchant.com.voyaj.app" urlScheme="voyaj">
+      <StripeRoot>
         <AuthProvider>
           <StatusBar style="auto" />
           <Root />
         </AuthProvider>
-      </StripeProvider>
+      </StripeRoot>
     </SafeAreaProvider>
   );
 }

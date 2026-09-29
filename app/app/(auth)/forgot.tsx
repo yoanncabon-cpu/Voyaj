@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Button, Field, Screen, Spacer, T } from '@/components/ui';
+import { AuthHeader, Button, Field, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ForgotPassword() {
@@ -38,10 +38,8 @@ export default function ForgotPassword() {
 
   if (step === 'email') {
     return (
-      <Screen title="Mot de passe oublié">
-        <T variant="title">Réinitialiser</T>
-        <T variant="small" style={{ marginTop: 6 }}>Nous vous envoyons un code par e-mail pour choisir un nouveau mot de passe.</T>
-        <Spacer />
+      <Screen title="">
+        <AuthHeader title="Mot de passe oublié" subtitle="Nous vous envoyons un code par e-mail pour choisir un nouveau mot de passe." />
         <Field label="E-mail" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
           autoComplete="email" textContentType="emailAddress" error={error} />
         <Button title="Recevoir le code" onPress={sendCode} loading={busy} disabled={!email} />
@@ -50,10 +48,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <Screen title="Nouveau mot de passe">
-      <T variant="title">Vérifiez vos e-mails</T>
-      <T variant="small" style={{ marginTop: 6 }}>Code envoyé à {email.trim()}. Pensez à regarder dans les spams.</T>
-      <Spacer />
+    <Screen title="">
+      <AuthHeader title="Vérifiez vos e-mails" subtitle={`Code envoyé à ${email.trim()}. Pensez à regarder dans les spams.`} />
       <Field label="Code reçu par e-mail" value={code} onChangeText={(v) => setCode(v.replace(/\D/g, ''))}
         keyboardType="number-pad" maxLength={10} autoComplete="one-time-code" textContentType="oneTimeCode" />
       <Field label="Nouveau mot de passe (8 caractères min.)" value={password} onChangeText={setPassword} secureTextEntry
