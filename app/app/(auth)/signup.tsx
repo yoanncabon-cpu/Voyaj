@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button, Field, Screen, Spacer, T } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,8 +31,7 @@ export default function Signup() {
     setBusy(false);
     if (res.error) return setError(res.error);
     if (res.needsConfirmation) {
-      Alert.alert('Vérifiez vos e-mails', 'Un lien de confirmation vous a été envoyé. Confirmez puis connectez-vous.');
-      router.replace('/(auth)/login');
+      router.replace({ pathname: '/(auth)/verify', params: { email: email.trim() } });
     }
   };
 

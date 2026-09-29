@@ -13,6 +13,10 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (email: string, password: string, name: string, phone: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   resetPassword: (email: string) => Promise<string | null>;
+  confirmPasswordReset: (email: string, code: string, newPassword: string) => Promise<string | null>;
+  verifySignup: (email: string, code: string) => Promise<string | null>;
+  resendSignupCode: (email: string) => Promise<string | null>;
+  changePassword: (newPassword: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   updateProfile: (fields: Partial<Pick<Profile, 'name' | 'phone' | 'avatar_url' | 'bio' | 'terms_accepted_at'>>) => Promise<string | null>;
 }
@@ -86,8 +90,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null, needsConfirmation: !data.session };
   }, []);
 
+  // Les e-mails contiennent un code à saisir dans l'app : pas de lien à ouvrir, donc pas de redirection à configurer.
   const resetPassword = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+    return error ? authError(error.message) : null;
+  }, []);
+
+  const confirmPasswordReset = useCallback(async (email: string, code: string, newPassword: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: 'recovery' });
+    if (error) return authError(error.message);
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    return updateError ? authError(updateError.message) : null;
+  }, []);
+
+  const verifySignup = useCallback(async (email: string, code: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: 'email' });
+    return error ? authError(error.message) : null;
+  }, []);
+
+  const resendSignupCode = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase() });
+    return error ? authError(error.message) : null;
+  }, []);
+
+  const changePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     return error ? authError(error.message) : null;
   }, []);
 
@@ -105,8 +132,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [userId, loadProfile]);
 
   const value = useMemo<AuthContextValue>(() => ({
-    session, userId, profile, loading, refreshProfile, signIn, signUp, resetPassword, signOut, updateProfile,
-  }), [session, userId, profile, loading, refreshProfile, signIn, signUp, resetPassword, signOut, updateProfile]);
+    session, userId, profile, loading, refreshProfile, signIn, signUp, resetPassword, confirmPasswordReset,
+    verifySignup, resendSignupCode, changePassword, signOut, updateProfile,
+  }), [session, userId, profile, loading, refreshProfile, signIn, signUp, resetPassword, confirmPasswordReset,
+    verifySignup, resendSignupCode, changePassword, signOut, updateProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -124,6 +153,10 @@ function authError(message: string): string {
   if (m.includes('email not confirmed')) return 'Confirmez votre e-mail avant de vous connecter';
   if (m.includes('password') && m.includes('characters')) return 'Mot de passe trop court (8 caractères minimum)';
   if (m.includes('database error saving new user')) return 'Ce numéro de téléphone est déjà associé à un compte';
+  if (m.includes('expired') || (m.includes('invalid') && m.includes('token'))) return 'Code incorrect ou expiré. Demandez-en un nouveau.';
+  if (m.includes('different from the old')) return "Choisissez un mot de passe différent de l'ancien";
+  if (m.includes('weak') || m.includes('pwned')) return 'Mot de passe trop facile à deviner, choisissez-en un autre';
+  if (m.includes('for security purposes')) return 'Patientez quelques secondes avant de redemander un code';
   if (m.includes('rate limit')) return 'Trop de tentatives, réessayez dans quelques minutes';
   if (m.includes('network')) return 'Connexion impossible. Vérifiez votre réseau.';
   return message;

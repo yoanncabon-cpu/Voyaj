@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button, Field, Screen, Spacer, T } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
-  const { signIn, resetPassword } = useAuth();
+  const { signIn, resendSignupCode } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,18 +13,16 @@ export default function Login() {
 
   const submit = async () => {
     setBusy(true);
-    setError(await signIn(email, password));
+    const err = await signIn(email, password);
     setBusy(false);
+    setError(err);
+    if (err?.startsWith('Confirmez')) {
+      await resendSignupCode(email);
+      router.push({ pathname: '/(auth)/verify', params: { email: email.trim() } });
+    }
   };
 
-  const forgot = async () => {
-    if (!email.includes('@')) {
-      setError('Saisissez votre e-mail puis touchez « Mot de passe oublié »');
-      return;
-    }
-    const err = await resetPassword(email);
-    Alert.alert(err ? 'Erreur' : 'E-mail envoyé', err ?? 'Suivez le lien reçu pour choisir un nouveau mot de passe.');
-  };
+  const forgot = () => router.push({ pathname: '/(auth)/forgot', params: { email: email.trim() } });
 
   return (
     <Screen title="Connexion">
