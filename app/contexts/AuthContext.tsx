@@ -87,6 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: { data: { name: name.trim(), phone: phone.trim() } },
     });
     if (error) return { error: authError(error.message), needsConfirmation: false };
+    // E-mail déjà inscrit : Supabase répond « succès » sans rien envoyer, avec un utilisateur sans identité.
+    if (data.user && data.user.identities?.length === 0) {
+      return { error: 'Un compte existe déjà avec cet e-mail. Connectez-vous ou utilisez « Mot de passe oublié ».', needsConfirmation: false };
+    }
     return { error: null, needsConfirmation: !data.session };
   }, []);
 
