@@ -1,4 +1,6 @@
-import { useColorScheme } from 'react-native';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Appearance, Platform, useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Couleurs fixes de la marque (logo, écran d'accueil), identiques en clair et en sombre. */
 export const brand = {
@@ -58,8 +60,55 @@ const dark: typeof light = {
 
 export type Colors = typeof light;
 
+/** Choix de l'utilisateur : suivre le téléphone, ou forcer clair / sombre. */
+export type ThemePreference = 'system' | 'light' | 'dark';
+
+const STORAGE_KEY = 'voyaj.theme';
+const ThemeContext = createContext<{ preference: ThemePreference; setPreference: (p: ThemePreference) => void }>({
+  preference: 'system',
+  setPreference: () => {},
+});
+
+function applyNative(p: ThemePreference) {
+  // Sur téléphone, force aussi le clavier, les sélecteurs de date et les alertes système.
+  if (Platform.OS !== 'web') Appearance.setColorScheme(p === 'system' ? null : p);
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [preference, setState] = useState<ThemePreference>('system');
+
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((v) => {
+      if (v === 'light' || v === 'dark') {
+        setState(v);
+        applyNative(v);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const setPreference = useCallback((p: ThemePreference) => {
+    setState(p);
+    applyNative(p);
+    AsyncStorage.setItem(STORAGE_KEY, p).catch(() => {});
+  }, []);
+
+  const value = useMemo(() => ({ preference, setPreference }), [preference, setPreference]);
+  return createElement(ThemeContext.Provider, { value }, children);
+}
+
+export function useThemePreference() {
+  return useContext(ThemeContext);
+}
+
+export function useColorMode(): 'light' | 'dark' {
+  const system = useColorScheme();
+  const { preference } = useContext(ThemeContext);
+  if (preference !== 'system') return preference;
+  return system === 'dark' ? 'dark' : 'light';
+}
+
 export function useColors(): Colors {
-  return useColorScheme() === 'dark' ? dark : light;
+  return useColorMode() === 'dark' ? dark : light;
 }
 
 export const radius = { sm: 10, md: 16, lg: 24, pill: 999 };

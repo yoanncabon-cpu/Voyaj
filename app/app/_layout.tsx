@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { subscribeToForegroundRideRequests, subscribeToNotificationTaps } from '@/lib/notifications';
 import { Loading } from '@/components/ui';
 import StripeRoot from '@/components/StripeRoot';
+import { ThemeProvider, useColorMode, useColors } from '@/lib/theme';
 
 /**
  * Garde de navigation : non connecté → accueil ; connecté sans CGU acceptées
@@ -52,12 +53,15 @@ function NotificationRouter() {
 
 function Root() {
   const { loading } = useAuth();
+  const c = useColors();
+  const mode = useColorMode();
   if (loading) return <Loading />;
   return (
     <>
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <AuthGate />
       <NotificationRouter />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="driver/offer/[id]" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
@@ -69,12 +73,13 @@ function Root() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StripeRoot>
-        <AuthProvider>
-          <StatusBar style="auto" />
-          <Root />
-        </AuthProvider>
-      </StripeRoot>
+      <ThemeProvider>
+        <StripeRoot>
+          <AuthProvider>
+            <Root />
+          </AuthProvider>
+        </StripeRoot>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

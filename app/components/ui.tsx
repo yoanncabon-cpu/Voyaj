@@ -113,10 +113,14 @@ export function Card({ children, style, onPress }: { children: React.ReactNode; 
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }, shadow.soft, style]}>{children}</View>
   );
   if (!onPress) return content;
+  // La mise en page (flex, largeur, marges) doit s'appliquer à la zone cliquable, sinon la carte ne s'étire pas.
+  const { flex, flexGrow, flexShrink, flexBasis, width, alignSelf, margin, marginTop, marginBottom, marginHorizontal } =
+    StyleSheet.flatten(style) ?? {};
+  const layout = { flex, flexGrow, flexShrink, flexBasis, width, alignSelf, margin, marginTop, marginBottom, marginHorizontal };
   return (
     <Pressable onPress={() => { tap(); onPress(); }} accessibilityRole="button"
-      style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}>
-      {content}
+      style={({ pressed }) => [layout, { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}>
+      {flex != null ? <View style={{ flex: 1 }}>{content}</View> : content}
     </Pressable>
   );
 }
@@ -175,6 +179,31 @@ export function T({ children, variant = 'body', color, style, center, numberOfLi
     <Text numberOfLines={numberOfLines} style={[base, { color: color ?? defaultColor }, center && { textAlign: 'center' }, style]}>
       {children}
     </Text>
+  );
+}
+
+/** Choix exclusif entre quelques options (façon iOS). */
+export function Segmented<V extends string>({ options, value, onChange, disabled }: {
+  options: { value: V; label: string; icon?: IconName }[];
+  value: V;
+  onChange: (v: V) => void;
+  disabled?: boolean;
+}) {
+  const c = useColors();
+  return (
+    <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]} accessibilityRole="tablist">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable key={o.value} disabled={disabled} accessibilityRole="tab" accessibilityState={{ selected: on }}
+            onPress={() => { if (!on) { tap(); onChange(o.value); } }}
+            style={[styles.segment, on && [{ backgroundColor: c.surface }, shadow.soft]]}>
+            {o.icon && <Ionicons name={o.icon} size={16} color={on ? c.primary : c.textSecondary} />}
+            <Text style={{ fontSize: 14, fontWeight: on ? '800' : '600', color: on ? c.text : c.textSecondary }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -308,6 +337,8 @@ export function Avatar({ name, url, size = 48 }: { name?: string | null; url?: s
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.md, paddingVertical: 8, gap: 8 },
   headerTitle: { fontSize: 17, fontWeight: '800', flex: 1, textAlign: 'center', letterSpacing: -0.3 },
+  segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4, gap: 4 },
+  segment: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: radius.pill },
   authLogo: { width: 56, height: 56, borderRadius: 16, marginBottom: space.md },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   button: { minHeight: 54, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg },

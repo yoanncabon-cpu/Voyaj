@@ -1,13 +1,15 @@
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, View } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { ListItem, Screen, T } from '@/components/ui';
+import { ListItem, Screen, Segmented, T } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { useThemePreference } from '@/lib/theme';
 
 export default function Settings() {
   const { signOut, session } = useAuth();
   const router = useRouter();
+  const { preference, setPreference } = useThemePreference();
 
   const deleteAccount = () => Alert.alert(
     'Supprimer mon compte',
@@ -29,6 +31,15 @@ export default function Settings() {
 
   return (
     <Screen title="Paramètres">
+      <T variant="label">Apparence</T>
+      <View style={{ marginTop: 10, marginBottom: 24 }}>
+        <Segmented value={preference} onChange={setPreference} options={[
+          { value: 'system', label: 'Auto', icon: 'phone-portrait-outline' },
+          { value: 'light', label: 'Clair', icon: 'sunny' },
+          { value: 'dark', label: 'Sombre', icon: 'moon' },
+        ]} />
+        <T variant="small" style={{ marginTop: 8 }}>« Auto » suit le réglage de votre téléphone.</T>
+      </View>
       <T variant="label">Aide</T>
       <ListItem icon="mail" title="Contacter le support" subtitle="support@voyajapp.com" onPress={() => Linking.openURL('mailto:support@voyajapp.com')} />
       <ListItem icon="document-text" title="Conditions générales" onPress={() => Linking.openURL('https://voyajapp.com/cgu')} />
