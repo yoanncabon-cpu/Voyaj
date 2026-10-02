@@ -1,9 +1,10 @@
 import React from 'react';
 import { interpolate, spring, useCurrentFrame, useVideoConfig, Easing } from 'remotion';
 import { C, fontFamily } from './theme';
+import T from './timeline.json';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
-export const SCREEN_LEN = 34;
+export const SCREEN_LEN = T.app.screenLen;
 
 const Driver: React.FC<{ name: string; car: string; price: string; active?: boolean; delay: number }> = ({ name, car, price, active, delay }) => {
   const frame = useCurrentFrame();
@@ -31,8 +32,8 @@ const Driver: React.FC<{ name: string; car: string; price: string; active?: bool
 
 function Search({ f }: { f: number }) {
   const word = 'Taverny';
-  const typed = word.slice(0, Math.max(0, Math.floor((f - 4) / 2.2)));
-  const showList = f > 20;
+  const typed = word.slice(0, Math.max(0, Math.floor((f - 6) / 2.5)));
+  const showList = f > 24;
   return (
     <>
       <div style={{ fontSize: 18, color: C.muted }}>Bonjour Jo</div>
@@ -45,7 +46,7 @@ function Search({ f }: { f: number }) {
         <span style={{ width: 3, height: 26, background: C.green, opacity: Math.floor(f / 8) % 2 ? 0.2 : 1 }} />
       </div>
       {showList && [['Taverny', '95150 · Val-d’Oise'], ['Gare de Taverny', 'Gare · Taverny']].map(([t, s], i) => {
-        const o = interpolate(f, [20 + i * 4, 28 + i * 4], [0, 1], clamp);
+        const o = interpolate(f, [24 + i * 5, 32 + i * 5], [0, 1], clamp);
         return (
           <div key={t} style={{ marginTop: 14, padding: '14px 4px', borderBottom: '1px solid rgba(255,255,255,0.08)', opacity: o, transform: `translateY(${(1 - o) * 12}px)` }}>
             <div style={{ fontWeight: 700, fontSize: 22 }}>{t}</div>
@@ -58,8 +59,8 @@ function Search({ f }: { f: number }) {
 }
 
 function Drivers({ f }: { f: number }) {
-  const press = interpolate(f, [22, 26, 30], [1, 0.94, 1], clamp);
-  const ripple = interpolate(f, [24, 34], [0, 1], clamp);
+  const press = interpolate(f, [32, 36, 40], [1, 0.94, 1], clamp);
+  const ripple = interpolate(f, [34, 46], [0, 1], clamp);
   return (
     <>
       <div style={{ fontSize: 18, color: C.muted }}>Taverny · 12 km</div>
@@ -113,7 +114,7 @@ function Code({ f }: { f: number }) {
       <div style={{ fontSize: 20, color: C.muted, marginBottom: 22 }}>Code de prise en charge</div>
       <div style={{ display: 'flex', gap: 12 }}>
         {'4827'.split('').map((d, i) => {
-          const p = spring({ frame: f - i * 4, fps, config: { damping: 12, stiffness: 180 } });
+          const p = spring({ frame: f - 4 - i * 5, fps, config: { damping: 12, stiffness: 180 } });
           return (
             <div key={i} style={{
               width: 66, height: 86, borderRadius: 18, display: 'grid', placeItems: 'center', fontSize: 44, fontWeight: 800,

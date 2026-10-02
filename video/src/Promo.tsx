@@ -1,9 +1,12 @@
 import React from 'react';
-import { AbsoluteFill, Easing, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Easing, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { evolvePath, getLength, getPointAtLength } from '@remotion/paths';
 import { FilmLook, Footage, GreenWipe, Kicker, LogoMark, RevealLine, Wordmark } from './components';
-import { Phone, SCREEN_LEN } from './Phone';
+import { Phone } from './Phone';
+
+const SCREEN_LEN = T.app.screenLen;
 import { C, fontFamily } from './theme';
+import T from './timeline.json';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 
@@ -20,14 +23,14 @@ const leftShade = 'linear-gradient(90deg, rgba(21,22,42,0.85) 0%, rgba(21,22,42,
 // ─── 1. Jo au bord de la route ─────────────────────────────────────────────
 const SceneJo: React.FC = () => (
   <AbsoluteFill>
-    <Footage src="jo_alone.mp4" duration={90} zoom={[1.06, 1.2]} origin="62% 40%" darken={0.2} />
+    <Footage src="jo_alone.mp4" duration={T.jo.len} zoom={[1.06, 1.2]} origin="62% 40%" darken={0.2} />
     <AbsoluteFill style={{ background: leftShade }} />
     <AbsoluteFill style={{ padding: '0 140px', justifyContent: 'center', gap: 18 }}>
       <Kicker text="Voici Jo" delay={4} />
       <div style={{ height: 10 }} />
-      <RevealLine text="Pas de permis." delay={8} size={104} />
-      <RevealLine text="Pas de bus." delay={26} size={104} />
-      <RevealLine text="Personne pour l'emmener." delay={44} size={104} color={C.muted} />
+      <RevealLine text="Pas de permis." delay={T.jo.lines[0]} size={104} />
+      <RevealLine text="Pas de bus." delay={T.jo.lines[1]} size={104} />
+      <RevealLine text="Personne pour l'emmener." delay={T.jo.lines[2]} size={104} color={C.muted} />
     </AbsoluteFill>
   </AbsoluteFill>
 );
@@ -35,14 +38,14 @@ const SceneJo: React.FC = () => (
 // ─── 2. La conductrice : « Pourtant… » ─────────────────────────────────────
 const SceneDriver: React.FC = () => {
   const f = useCurrentFrame();
-  const zoomOut = interpolate(f, [52, 66], [1, 1.25], { ...clamp, easing: Easing.in(Easing.cubic) });
+  const zoomOut = interpolate(f, [T.driver.len - 16, T.driver.len], [1, 1.25], { ...clamp, easing: Easing.in(Easing.cubic) });
   return (
-    <AbsoluteFill style={{ transform: `scale(${zoomOut})`, filter: `blur(${interpolate(f, [56, 66], [0, 14], clamp)}px)` }}>
-      <Footage src="car_stops.mp4" startFrom={72} duration={70} zoom={[1.14, 1.04]} origin="65% 55%" darken={0.12} />
+    <AbsoluteFill style={{ transform: `scale(${zoomOut})`, filter: `blur(${interpolate(f, [T.driver.len - 10, T.driver.len], [0, 14], clamp)}px)` }}>
+      <Footage src="car_stops.mp4" startFrom={60} duration={T.driver.len} zoom={[1.14, 1.04]} origin="65% 55%" darken={0.12} />
       <AbsoluteFill style={{ background: leftShade }} />
       <AbsoluteFill style={{ padding: '0 140px', justifyContent: 'center', gap: 8 }}>
-        <RevealLine text="Pourtant," delay={4} size={70} weight={600} color={C.muted} />
-        <RevealLine text="les voitures roulent déjà." delay={11} size={118} highlight={['déjà']} />
+        <RevealLine text="Pourtant," delay={T.driver.lines[0]} size={70} weight={600} color={C.muted} />
+        <RevealLine text="les voitures roulent déjà." delay={T.driver.lines[1]} size={118} highlight={['déjà']} />
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -86,15 +89,15 @@ const SceneApp: React.FC = () => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const phoneIn = spring({ frame: f - 2, fps, config: { damping: 15, stiffness: 90 } });
-  const phoneF = Math.max(0, f - 6);
+  const phoneF = Math.max(0, f - T.app.phoneOffset);
   const active = phoneF < SCREEN_LEN * 2 ? 0 : phoneF < SCREEN_LEN * 3 ? 1 : 2;
-  const progress = interpolate(f, [4, 136], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
+  const progress = interpolate(f, [4, T.app.len - 10], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
   const len = getLength(ROUTE);
   const car = getPointAtLength(ROUTE, progress * len) ?? { x: 120, y: 990 };
   const route = evolvePath(progress, ROUTE);
   return (
     <AbsoluteFill>
-      <Footage src="hero.mp4" duration={145} zoom={[1.08, 1.2]} darken={0.62} blur={5} />
+      <Footage src="hero.mp4" duration={T.app.len} playbackRate={0.62} zoom={[1.08, 1.22]} darken={0.62} blur={5} />
       <AbsoluteFill style={{ background: 'radial-gradient(ellipse at 72% 45%, rgba(61,220,151,0.16), transparent 55%)' }} />
 
       <svg width={1920} height={1080} style={{ position: 'absolute', inset: 0 }}>
@@ -156,13 +159,13 @@ const SceneValues: React.FC = () => {
   const { fps } = useVideoConfig();
   return (
     <AbsoluteFill>
-      <Footage src="door_opens.mp4" startFrom={45} duration={64} zoom={[1.05, 1.15]} origin="50% 55%" darken={0.25} />
+      <Footage src="door_opens.mp4" startFrom={20} duration={T.values.len} zoom={[1.05, 1.15]} origin="50% 55%" darken={0.25} />
       <AbsoluteFill style={{ background: leftShade }} />
       <AbsoluteFill style={{ padding: '0 140px', justifyContent: 'center' }}>
-        <RevealLine text="Plus qu'un trajet." delay={2} size={110} />
+        <RevealLine text="Plus qu'un trajet." delay={T.values.title} size={110} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 40 }}>
           {CHIPS.map((c, i) => {
-            const p = spring({ frame: f - 12 - i * 7, fps, config: { damping: 13, stiffness: 170 } });
+            const p = spring({ frame: f - T.values.chips[i], fps, config: { damping: 13, stiffness: 170 } });
             return (
               <div key={c.t} style={{
                 display: 'flex', alignItems: 'center', gap: 22, alignSelf: 'flex-start', fontFamily,
@@ -216,17 +219,16 @@ const SceneEnd: React.FC = () => {
 // ─── Montage ───────────────────────────────────────────────────────────────
 export const Promo: React.FC = () => (
   <AbsoluteFill style={{ backgroundColor: C.night }}>
-    <Sequence from={0} durationInFrames={86}><SceneJo /></Sequence>
-    <Sequence from={83} durationInFrames={68}><SceneDriver /></Sequence>
-    <Sequence from={145} durationInFrames={75}><Fade len={75} fadeIn={8}><SceneLogo /></Fade></Sequence>
-    <Sequence from={218} durationInFrames={142}><SceneApp /></Sequence>
-    <Sequence from={356} durationInFrames={58}><SceneValues /></Sequence>
-    <Sequence from={408} durationInFrames={42}><Fade len={42} fadeIn={6}><SceneEnd /></Fade></Sequence>
+    <Sequence from={T.jo.from} durationInFrames={T.jo.len}><SceneJo /></Sequence>
+    <Sequence from={T.driver.from} durationInFrames={T.driver.len}><SceneDriver /></Sequence>
+    <Sequence from={T.logo.from} durationInFrames={T.logo.len}><Fade len={T.logo.len} fadeIn={8}><SceneLogo /></Fade></Sequence>
+    <Sequence from={T.app.from} durationInFrames={T.app.len}><SceneApp /></Sequence>
+    <Sequence from={T.values.from} durationInFrames={T.values.len}><SceneValues /></Sequence>
+    <Sequence from={T.end.from} durationInFrames={T.end.len}><Fade len={T.end.len} fadeIn={6}><SceneEnd /></Fade></Sequence>
 
-    <Sequence from={72} durationInFrames={24}><GreenWipe /></Sequence>
-    <Sequence from={207} durationInFrames={24}><GreenWipe /></Sequence>
-    <Sequence from={345} durationInFrames={24}><GreenWipe /></Sequence>
+    {T.wipes.map((w) => <Sequence key={w} from={w} durationInFrames={24}><GreenWipe /></Sequence>)}
 
+    <Audio src={staticFile('soundtrack.wav')} />
     <FilmLook />
   </AbsoluteFill>
 );

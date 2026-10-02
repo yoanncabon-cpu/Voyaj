@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render VoyajPromo out/voyaj-promo-15s.mp4"
+    "audio": "node audio/make-soundtrack.mjs",
+    "render": "node audio/make-soundtrack.mjs && remotion render VoyajPromo out/voyaj-promo.mp4 --audio-codec=aac --audio-bitrate=256k"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.532",

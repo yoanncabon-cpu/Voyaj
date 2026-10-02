@@ -9,8 +9,8 @@ const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 /** Plan vidéo plein cadre avec lent zoom « Ken Burns ». */
 export const Footage: React.FC<{
   src: string; startFrom?: number; zoom?: [number, number]; duration: number;
-  darken?: number; blur?: number; origin?: string;
-}> = ({ src, startFrom = 0, zoom = [1.04, 1.14], duration, darken = 0.35, blur = 0, origin = '50% 50%' }) => {
+  darken?: number; blur?: number; origin?: string; playbackRate?: number;
+}> = ({ src, startFrom = 0, zoom = [1.04, 1.14], duration, darken = 0.35, blur = 0, origin = '50% 50%', playbackRate = 1 }) => {
   const frame = useCurrentFrame();
   const scale = interpolate(frame, [0, duration], zoom, { ...clamp, easing: Easing.out(Easing.quad) });
   return (
@@ -18,6 +18,7 @@ export const Footage: React.FC<{
       <OffthreadVideo
         src={staticFile(src)}
         startFrom={startFrom}
+        playbackRate={playbackRate}
         muted
         style={{
           width: '100%', height: '100%', objectFit: 'cover',

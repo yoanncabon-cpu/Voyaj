@@ -1,0 +1,11 @@
+{
+  "fps": 30,
+  "total": 690,
+  "jo": { "from": 0, "len": 108, "lines": [10, 32, 54] },
+  "driver": { "from": 107, "len": 82, "lines": [6, 14] },
+  "logo": { "from": 186, "len": 96 },
+  "app": { "from": 281, "len": 230, "phoneOffset": 8, "screenLen": 52 },
+  "values": { "from": 510, "len": 100, "title": 4, "chips": [16, 28, 40] },
+  "end": { "from": 606, "len": 84 },
+  "wipes": [96, 270, 499]
+}
